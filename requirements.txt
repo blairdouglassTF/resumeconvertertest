@@ -1,0 +1,6 @@
+azure-functions
+openai>=1.35.0
+pdfplumber
+python-docx
+pillow
+azure-storage-blob

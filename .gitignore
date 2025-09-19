@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+env/
+venv/
+.venv/
+.DS_Store
+
+# Azure Functions
+local.settings.json
+bin/
+obj/
+extensions.csproj
+
+# Editors
+
+.idea/
+
+.python_packages
