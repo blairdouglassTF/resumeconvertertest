@@ -28,10 +28,11 @@ from openai import AzureOpenAI
 LOGO_PATH = "./logo.png"
 
 # Azure OpenAI config (hard-coded for now; move to env/Key Vault later)
-AZURE_OPENAI_ENDPOINT = os.environ.get("AZURE_OPENAI_ENDPOINT") #"https://terrafirmaopenai.openai.azure.com/"
-AZURE_OPENAI_API_KEY = os.environ.get("AZURE_OPENAI_API_KEY") #"37xxi5ClSgpfrrqKOcsObU2MiYcPRGh6GKsS1MiGFJPRbAMwtuLTJQQJ99BGACL93NaXJ3w3AAABACOG3l9J"
+AZURE_OPENAI_ENDPOINT = os.environ.get("AZURE_OPENAI_ENDPOINT") #"https://resumeconverter.openai.azure.com/openai/deployments/gpt-4-1-mini-2025-04-14-ft-20d767268de6422099620603177f7c67-2/chat/completions?api-version=2025-01-01-preview"
+AZURE_OPENAI_API_KEY = os.environ.get("AZURE_OPENAI_API_KEY") 
 AZURE_OPENAI_API_VERSION = os.environ.get("AZURE_OPENAI_API_VERSION") # "2024-12-01-preview"
-DEPLOYMENT = os.environ.get("DEPLOYMENT") # "gpt-4-1-mini-2025-04-14-ft-version3"
+DEPLOYMENT = os.environ.get("DEPLOYMENT") # "gpt-4-1-mini-2025-04-14-ft-20d767268de6422099620603177f7c67-2"
+
 
 # =======================
 # PROMPT (EXACT COPY)
@@ -100,9 +101,11 @@ PROMPT_TEXT = r"""
                         "Output Rules:"     
                         "- You must output a COMPLETE, VALID JSON object with no text outside the JSON."
                         "- Do NOT cut off mid-way. Ensure all fields are closed properly and all string values are quoted and escaped."
-                        "- Follow the exact JSON order and field names as the provided examples: Name, Professional Title, Industries, Qualifications, Summary, Experiences, Full Work History."
+                        "- Follow the exact JSON order and field names as the provided examples: Name, Professional Title, Industries, Qualifications, Summary, Experience, Full Work History."
                         "- Use gender-neutral language throughout (they/them)."
                         "- Ensure the tone matches an executive professional profile with descriptive company context and achievements, similar to high-quality capability documents."
+                        "- Ensure out output using Australian English spelling (e.g., 'organisation', 'focussed')."
+                        "- Do not use the phrase "works well without supervision""
                         "Example Output:\n"
 "{\n"
 "  \"Name\": \"Jane Doe\",\n"
@@ -112,7 +115,7 @@ PROMPT_TEXT = r"""
 "    {\"Degree\": \"Master of Data Science\", \"Institution\": \"University of Melbourne\"}\n"
 "  ],\n"
 "  \"Summary\": \"Jane is a data scientist.\",\n"
-"  \"Experiences\": [\n"
+"  \"Experience\": [\n"
 "    {\"Role\": \"Data Scientist\", \"Company\": \"Google\", \"Start Date\": \"Jan 2020\", "
 "\"End Date\": \"Present\", \"Details\": \"Google is a global tech company.\", "
 "\"Key Highlights\": [\"Led ML research\", \"Deployed NLP models\"]}\n"
@@ -271,13 +274,13 @@ def export_profile_to_docx(json_path, output_path):
     para.runs[0].font.size = Pt(10)
 
     # ===== Experiences =====
-    p_exp_title = doc.add_paragraph("Experiences")
+    p_exp_title = doc.add_paragraph("Experience")
     run = p_exp_title.runs[0]
     run.font.name = "Verdana Pro Semibold"
     run.font.size = Pt(14)
     run.font.color.rgb = RGBColor(0, 51, 102)
 
-    for exp in (profile.get("Experiences") or []):
+    for exp in (profile.get("Experience") or []):
         p_role = doc.add_paragraph(exp.get("Role", ""))
         run = p_role.runs[0]
         run.font.name = "Verdana Pro Semibold"
