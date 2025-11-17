@@ -165,187 +165,38 @@ def add_page_number(paragraph):
     r_element.append(instrText)
     r_element.append(fldChar2)
 
+def export_profile_to_docx(profile_data, output_path, 
+                           template_path="process-resume/template.docx", 
+                           logo_path=None):
+    """
+    Export a profile to DOCX using a template.
+    
+    Args:
+        profile_data (dict): keys must match placeholders in the template like {{name}}, {{email}}.
+        output_path (str): where to save the final DOCX.
+        template_path (str): path to template.docx.
+        logo_path (str): optional path to a logo image.
+    """
+    if not os.path.exists(template_path):
+        raise FileNotFoundError(f"Template not found: {template_path}")
+    
+    doc = Document(template_path)
 
-def export_profile_to_docx(json_path, output_path):
-    with open(json_path, "r") as f:
-        profile = json.load(f)
+    # Replace placeholders in paragraphs
+    for paragraph in doc.paragraphs:
+        for key, value in profile_data.items():
+            placeholder = f"{{{{{key}}}}}"  # e.g., {{name}}
+            if placeholder in paragraph.text:
+                paragraph.text = paragraph.text.replace(placeholder, value)
 
-    doc = Document()
+    # Optionally insert logo at top of document
+    if logo_path:
+        first_paragraph = doc.paragraphs[0]
+        add_logo_safe(first_paragraph, logo_path)
 
-    # Margins and header/footer setup
-    section = doc.sections[0]
-    section.top_margin = Cm(2.54)
-    section.bottom_margin = Cm(1.5)
-    section.left_margin = Cm(1.5)
-    section.right_margin = Cm(1.5)
-    section.different_first_page_header_footer = True
-
-    # ===== First Page Header (Name/Role left, Logo right) =====
-    header_first = section.first_page_header
-
-    # Name
-    p_name = header_first.add_paragraph(profile["Name"])
-    run_name = p_name.runs[0]
-    run_name.font.name = "Verdana Pro Semibold"
-    run_name.font.size = Pt(20)
-    run_name.font.color.rgb = RGBColor(0, 51, 102)
-    p_name.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
-
-    # Role
-    p_role = header_first.add_paragraph(profile["Professional Title"])
-    run_role = p_role.runs[0]
-    run_role.font.name = "Verdana Pro Semibold"
-    run_role.font.size = Pt(16)
-    run_role.font.color.rgb = RGBColor(0, 51, 102)
-    p_role.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
-
-    if LOGO_PATH and os.path.exists(LOGO_PATH):
-        p_logo = header_first.add_paragraph()
-        p_logo.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
-        run_logo = p_logo.add_run()
-        run_logo.add_picture(LOGO_PATH, width=Cm(6.35), height=Cm(0.56))
-
-    # ===== Other pages header =====
-    header_other = section.header
-    header_other_para = header_other.add_paragraph(f"{profile['Name']} – {profile['Professional Title']}")
-    run = header_other_para.runs[0]
-    run.font.name = "Verdana"
-    run.font.size = Pt(10)
-    run.font.color.rgb = RGBColor(0, 51, 102)
-
-    # ===== Industries & Qualifications box (first page only) =====
-    table = doc.add_table(rows=1, cols=1)
-    table.autofit = True
-    cell = table.rows[0].cells[0]
-    set_cell_shading(cell)
-
-    # Industries
-    p_ind_title = cell.add_paragraph()
-    run = p_ind_title.add_run("Industries")
-    run.font.name = "Verdana Pro Semibold"
-    run.font.size = Pt(13)
-    run.font.color.rgb = RGBColor(0, 51, 102)
-
-    for industry, companies in (profile.get("Industries") or {}).items():
-        para = cell.add_paragraph(industry)
-        para.runs[0].font.name = "Verdana"
-        para.runs[0].font.size = Pt(10)
-        for company in companies:
-            company_para = cell.add_paragraph(f"• {company}")
-            company_para.runs[0].font.name = "Verdana"
-            company_para.runs[0].font.size = Pt(9)
-
-    # Spacer
-    cell.add_paragraph("")
-
-    # Qualifications
-    p_qual_title = cell.add_paragraph()
-    run = p_qual_title.add_run("Qualifications")
-    run.font.name = "Verdana Pro Semibold"
-    run.font.size = Pt(13)
-    run.font.color.rgb = RGBColor(0, 51, 102)
-
-    for qual in (profile.get("Qualifications") or []):
-        if (qual.get('Degree', '') or '').lower() == "certifications":
-            para = cell.add_paragraph("Certifications:")
-            para.runs[0].font.name = "Verdana"
-            para.runs[0].font.size = Pt(10)
-            # semicolon-separated items
-            for item in [i.strip() for i in (qual.get('Institution', '') or '').split(";") if i.strip()]:
-                para = cell.add_paragraph(item)
-                para.runs[0].font.name = "Verdana"
-                para.runs[0].font.size = Pt(10)
-        else:
-            para = cell.add_paragraph(f"{qual.get('Degree', '')}: {qual.get('Institution', '')}")
-            para.runs[0].font.name = "Verdana"
-            para.runs[0].font.size = Pt(10)
-
-    doc.add_paragraph()  # spacing before Summary
-
-    # ===== Summary =====
-    p_summary_title = doc.add_paragraph("Summary")
-    run = p_summary_title.runs[0]
-    run.font.name = "Verdana Pro Semibold"
-    run.font.size = Pt(14)
-    run.font.color.rgb = RGBColor(0, 51, 102)
-
-    para = doc.add_paragraph(profile.get("Summary", ""))
-    para.runs[0].font.name = "Arial"
-    para.runs[0].font.size = Pt(10)
-
-    # ===== Experiences =====
-    p_exp_title = doc.add_paragraph("Experience")
-    run = p_exp_title.runs[0]
-    run.font.name = "Verdana Pro Semibold"
-    run.font.size = Pt(14)
-    run.font.color.rgb = RGBColor(0, 51, 102)
-
-    for exp in (profile.get("Experience") or []):
-        p_role = doc.add_paragraph(exp.get("Role", ""))
-        run = p_role.runs[0]
-        run.font.name = "Verdana Pro Semibold"
-        run.font.size = Pt(12)
-        run.font.color.rgb = RGBColor(0, 51, 102)
-
-        p_company = doc.add_paragraph(
-            f"{exp.get('Company', '')} | {exp.get('Start Date', '')} – {exp.get('End Date', '')}")
-        run = p_company.runs[0]
-        run.font.name = "Verdana Pro Semibold"
-        run.font.size = Pt(10)
-        run.font.color.rgb = RGBColor(0, 51, 102)
-
-        p_details = doc.add_paragraph(exp.get("Details", ""))
-        p_details.runs[0].font.name = "Verdana"
-        p_details.runs[0].font.size = Pt(10)
-
-        for highlight in (exp.get("Key Highlights") or []):
-            p = doc.add_paragraph(f"• {highlight}", style=None)
-            run = p.runs[0]
-            run.font.name = "Verdana"
-            run.font.size = Pt(9)
-
-    # ===== Full Work History =====
-    p_fwh = doc.add_paragraph("Full Work History")
-    run = p_fwh.runs[0]
-    run.font.name = "Verdana Pro Semibold"
-    run.font.size = Pt(14)
-    run.font.color.rgb = RGBColor(0, 51, 102)
-
-    table = doc.add_table(rows=1, cols=3)
-    hdr_cells = table.rows[0].cells
-    headers = ["Company", "Years", "Role"]
-    for idx, text in enumerate(headers):
-        hdr_cells[idx].text = text
-        run = hdr_cells[idx].paragraphs[0].runs[0]
-        run.font.name = "Verdana Pro Semibold"
-        run.font.size = Pt(10)
-        run.font.color.rgb = RGBColor(0, 51, 102)
-
-    for entry in (profile.get("Full Work History") or []):
-        row_cells = table.add_row().cells
-        row_cells[0].text = entry.get("Company", "")
-        row_cells[1].text = entry.get("Years", "")
-        row_cells[2].text = entry.get("Role", "")
-
-    # ===== Footer =====
-    footer_other = section.footer
-    logo_path = LOGO_PATH
-    if logo_path and os.path.exists(logo_path):
-        p_footer_logo = footer_other.add_paragraph()
-        run_footer_logo = p_footer_logo.add_run()
-        run_footer_logo.add_picture(logo_path, width=Cm(4.07), height=Cm(0.36))
-        p_footer_logo.alignment = WD_PARAGRAPH_ALIGNMENT.LEFT
-
-    para_num = footer_other.add_paragraph()
-    para_num.alignment = WD_PARAGRAPH_ALIGNMENT.RIGHT
-    run = para_num.add_run()
-    run.font.name = "Verdana"
-    run.font.size = Pt(9)
-    run.font.bold = True
-    add_page_number(para_num)
-
+    # Save the final document
     doc.save(output_path)
-
+    return output_path
 
 
 # =======================
