@@ -4,3 +4,4 @@ pdfplumber
 python-docx
 pillow
 azure-storage-blob
+requests
